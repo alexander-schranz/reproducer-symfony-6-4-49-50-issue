@@ -1,5 +1,7 @@
 # reproducer-symfony-6-4-49-50-issue
 
+> **INVALID: not a Symfony bug.** The changed behaviour in `symfony/form` 6.4.50 is an intended bug fix ([#67772](https://github.com/symfony/symfony/pull/67772), fixes [#61484](https://github.com/symfony/symfony/issues/61484)): a validation error is no longer attached to a disabled sibling form with the same property path. The application where this was found relied on the old behaviour (its tests submitted the field of a disabled step), so the fix belongs in that application. The repository is kept only as a reference in case something related shows up again.
+
 Behaviour change of the form `ViolationMapper` between `symfony/form` 6.4.49 and 6.4.50.
 
 ## Setup
