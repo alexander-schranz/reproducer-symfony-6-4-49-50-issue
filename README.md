@@ -56,6 +56,20 @@ contact_register_form                         root, array data, no data_class
 - Up to 6.4.49 the `NotBlank` violation of `details.email` is mapped to the disabled `personal_infos.email`. A disabled form is always valid, so the root form is valid
 - Since 6.4.50 the violation stays on `details.email`. The root form is invalid
 
+## Findings in the application
+
+- 4 functional tests failed after updating to 6.4.50. All of them relied on the old behaviour
+- 3 registration tests submitted the email of the disabled step (`personal_infos`) instead of the active `details` step. The empty `details.email` violated `NotBlank`, but the error was swallowed by the disabled sibling
+- `testRegistrationOneTimeRegistrationAlreadyExists` only passed because the invite lookup ran with no phone and no email
+- One invitation test (contact without email, flow config `email.required = false`) still fails: `details.email` always has `NotBlank`, so the form was only valid because of the swallowed error. This is a real behaviour change for invitees without an email address and needs a code change in the application
+- Fix in the application: tests submit the active step, `NotBlank` follows the `required` config
+
+## Check for open Symfony issues (2026-11-06)
+
+- No open issue or PR about `ViolationMapper` or a regression after #67772 and #67776 (searched issues and PRs created since 2026-11-01)
+- #67772 fixes #61484 and is marked as a bug fix, #67776 is a follow-up for data constraints
+- #67825 (validation groups callable, 7.4.14) is closed and unrelated: the application does not use `validation_groups`
+
 ## Suspects
 
 Both in 6.4.50, both touch `ViolationMapper`:
