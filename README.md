@@ -20,13 +20,34 @@ composer require symfony/form:6.4.50 && php bin/console app:repro
 #   error on "root.details.email": This value should not be blank.
 ```
 
-## Form
+## Form structure
 
-- Root form with two steps, both `inherit_data`, so both `email` fields have the property path `[email]`
-- `details` is the active step: enabled, `email` has `NotBlank`, submitted empty
-- `personal_infos` is the inactive step: `disabled`, `email` without constraints
+Reproducer (`src/Command/ReproCommand.php`):
 
-See `src/Command/ReproCommand.php`.
+```
+root                      FormType, data: [] (array, no data_class)
+├── details               FormType, inherit_data, enabled (active step)
+│   └── email             EmailType, NotBlank           property path: [email]
+└── personal_infos        FormType, inherit_data, disabled (inactive step)
+    └── email             EmailType, no constraints     property path: [email]
+```
+
+The application this was found in is a multi step registration form. Each step is a `StepFormType` with `inherit_data: true`, which is `disabled` when it is not the active step. Real structure, reduced to the relevant fields:
+
+```
+contact_register_form                         root, array data, no data_class
+├── details                                   StepFormType, inherit_data, enabled (active step)
+│   └── email                                 EmailType, constraints: Email, NotBlank
+└── personal_infos                            StepFormType, inherit_data, disabled (inactive step)
+    └── form                                  ContactFormType, inherit_data
+        └── contact_section                   (inherit_data)
+            └── email                         EmailType
+```
+
+- Because of `inherit_data`, both `email` fields read and write the same key `[email]` of the root array
+- The `NotBlank` of `details.email` produces a violation with the property path `children[details].children[email].data`
+- The `ViolationMapper` then finds two forms for the segment `email`: the enabled `details.email` and the disabled `personal_infos...email`
+- Request data: `contact_register_form[personal_infos][form][contact_section][email]=...` is submitted, `details[email]` is missing and therefore empty
 
 ## Result
 
